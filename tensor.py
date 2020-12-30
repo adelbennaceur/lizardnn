@@ -58,16 +58,31 @@ class Tensor(object):
                     self.creators[0].backward(self.grad.__neg__())
 
                 if self.creation_op == "mul":
-                    new = self.grad.data * self.creators[1]
+                    new = self.grad * self.creators[1]
                     self.creators[0].backward(new, self)
-                    new = self.grad.data * self.creators[0]
+                    new = self.grad * self.creators[0]
                     self.creators[1].backward(new, self)
 
                 if self.creation_op == "sub":
                     new = Tensor(self.grad.data)
-                    self.creators[0].backward(self.grad.data, self)
+                    self.creators[0].backward(new, self)
                     new = Tensor(self.grad.__neg__().data)
                     self.creators[1].backward(new, self)
+
+                if self.creation_op == "transpose":
+                    self.creators[0].backward(self.grad.transpose())
+
+                # matrix multiplication
+                if self.creation_op == "mm":
+                    # previous layer activation
+                    activation = self.creators[0]
+                    weights = self.creators[1]
+                    new = self.grad.__matmul__(weights.transpose())
+                    activation.backward(new)
+                    new = self.grad.transpose().__matmul__(activation).transpose()
+                    weights.backward(new)
+
+                # optional
 
     def __repr__(self):
         return str(self.data.__repr__())
@@ -113,6 +128,17 @@ class Tensor(object):
             )
         return Tensor(self.data - other.data)
 
+    def __matmul__(self, other):
+        if self.autograd:
+            return Tensor(
+                self.data.dot(other.data),
+                autograd=True,
+                creators=[self, other],
+                creation_op="mm",
+            )
+
+        return Tensor(self.data.dot(other.data))
+
     def sum(self, dim):
         # sum over a dimension
         if self.autograd:
@@ -122,15 +148,28 @@ class Tensor(object):
             )
         return Tensor(self.data.sum(dim))
 
+    def transpose(self):
+        if self.autograd:
+            return Tensor(
+                self.data.transpose(),
+                autograd=True,
+                creators=[self],
+                creation_op="transpose",
+            )
+
+        return Tensor(self.data.transpose())
+
+    # matrix multiplication
+
 
 if __name__ == "__main__":
     a = Tensor([1, 2, 3, 4, 5], autograd=True)
     b = Tensor([0, 5, 4, 1, 8], autograd=True)
     c = Tensor([1, 1, 1, 1, 1], autograd=True)
 
-    d = a + (-b)
-    e = (-b) + c
-    f = d + e
+    d = a * (-b)
+    e = (-b) * c
+    f = d - e
 
     f.backward(Tensor([1, 1, 1, 1, 1]))
 
