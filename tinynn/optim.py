@@ -11,7 +11,7 @@ class Optimizer:
 
     def zero_grad(self):
         for param in self.params:
-            param.grad = None
+            param.grad.data *= 0
 
 
 class SGD(Optimizer):
@@ -22,7 +22,7 @@ class SGD(Optimizer):
 
     def step(self):
         for p in self.params:
-            p = p - p.grad * self.lr
+            p -= p.grad.data * self.lr
 
 
 class RMSprop(Optimizer):

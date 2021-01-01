@@ -32,8 +32,13 @@ class Tensor(object):
                 return False
         return True
 
-    def backward(self, grad, grad_origin=None):
+    def backward(self, grad=None, grad_origin=None):
+
         if self.requires_grad:
+
+            if grad is None:
+                grad = Tensor(np.ones_like(self.data))
+
             if grad_origin is not None:
                 # check if you can backpropagate then decrement the counter
                 if self.children[grad_origin.id] == 0:
@@ -47,8 +52,11 @@ class Tensor(object):
             else:
                 self.grad += grad
 
+            # grads must not have grads of their own
+            assert grad.requires_grad == False
+
             if self.creators is not None and (
-                self.children_grads() or grad_origin is not None
+                self.children_grads() or grad_origin is None
             ):
                 # setattr()
                 if self.creation_op == "add":
@@ -79,9 +87,9 @@ class Tensor(object):
                     # previous layer activation
                     activation = self.creators[0]
                     weights = self.creators[1]
-                    new = self.grad.__matmul__(weights.transpose())
+                    new = self.grad.mm(weights.transpose())
                     activation.backward(new)
-                    new = self.grad.transpose().__matmul__(activation).transpose()
+                    new = self.grad.transpose().mm(activation).transpose()
                     weights.backward(new)
 
                 if "sum" in self.creation_op:
@@ -137,7 +145,7 @@ class Tensor(object):
             )
         return Tensor(self.data - other.data)
 
-    def __matmul__(self, other):
+    def mm(self, other):
         if self.requires_grad:
             return Tensor(
                 self.data.dot(other.data),
@@ -156,7 +164,7 @@ class Tensor(object):
                 self.data.sum(dim),
                 requires_grad=True,
                 creators=[self],
-                creation_op="sum" + str(dim),
+                creation_op="sum_" + str(dim),
             )
         return Tensor(self.data.sum(dim))
 
@@ -175,7 +183,7 @@ class Tensor(object):
         trans = list(range(0, len(self.data.shape)))
         trans.insert(dim, len(self.data.shape))
         new_shape = list(self.data.shape) + [copies]
-        new_data = self.data.repeat(copies).reshape(new_shape)
+        new_data = self.data.repeat(copies).reshape(new_shape).transpose(trans)
 
         if self.requires_grad:
             return Tensor(
