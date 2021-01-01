@@ -1,4 +1,4 @@
-from tinynn.tensor import tensor
+from tinynn.tensor import Tensor
 
 
 class Optimizer:
@@ -7,7 +7,7 @@ class Optimizer:
     """
 
     def __init__(self, params):
-        self.params = [p for p in params if p.autograd]
+        self.params = [p for p in params if p.requires_grad]
 
     def zero_grad(self):
         for param in self.params:
@@ -18,7 +18,7 @@ class SGD(Optimizer):
     def __init__(self, params, lr=0.001):
         super.__init__(params)
 
-    self.lr = lr
+        self.lr = lr
 
     def step(self):
         for p in self.params:
