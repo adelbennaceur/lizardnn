@@ -15,14 +15,14 @@ def main():
     w1 = Tensor(np.random.rand(2, 3), requires_grad=True)
     w2 = Tensor(np.random.rand(3, 1), requires_grad=True)
 
-    weights.append(w1)  
+    weights.append(w1)
     weights.append(w2)
 
     lr = 0.01
     optimizer = RMSprop(params=weights, lr=lr)
-    
+
     for i in range(100):
-       
+
         pred = data.mm(w1).mm(w2)
 
         loss = ((pred - gts) * (pred - gts)).sum(0)
