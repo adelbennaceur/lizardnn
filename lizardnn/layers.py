@@ -1,4 +1,4 @@
-from tensor import Tensor
+from lizardnn.tensor import Tensor
 import numpy as np
 
 
@@ -7,7 +7,7 @@ class Layer:
     base class for different neural network layers
     """
 
-    def __init__(self, params):
+    def __init__(self):
         self.params = list()
 
     def get_parameters(self):
@@ -50,7 +50,7 @@ class Sequential(Layer):
         params = list()
 
         for layer in self.layers:
-            params.append(layer.get_parameters())
+            params += layer.get_parameters()
         return params
 
     def forward(self, x):
@@ -79,3 +79,27 @@ class Conv2d(Layer):
 
     def forward(self, x):
         raise NotImplementedError
+
+
+#-----------activations----------
+class Tanh(Layer):
+    """
+    Tanh activation layer
+    """
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x.tanh()
+
+
+class Sigmoid(Layer):
+    """
+    Tanh activation layer
+    """
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x.sigmoid()
+

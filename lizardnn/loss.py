@@ -1,4 +1,4 @@
-from tensor import Tensor
+from lizardnn.tensor import Tensor
 
 
 class MSEloss(object):
@@ -14,7 +14,7 @@ class MSEloss(object):
         return (preds - target).pow(2).sum(0)
 
 
-class CrossEntropyLosss(object):
+class CrossEntropyLoss(object):
     """
     cross entropy loss criterion
     """
@@ -24,3 +24,6 @@ class CrossEntropyLosss(object):
 
     def forward(self, preds, target):
         return preds.cross_entropy(target)
+
+
+

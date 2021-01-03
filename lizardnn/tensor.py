@@ -60,7 +60,7 @@ class Tensor(object):
             ):
                 # setattr()
                 if self.creation_op == "add":
-                    # when two tensors are added together the resulthas two creators
+                    # when two tensors are added together the result has two creators
                     self.creators[0].backward(self.grad, self)
                     self.creators[1].backward(self.grad, self)
 
@@ -84,7 +84,6 @@ class Tensor(object):
 
                 if "pow" in self.creation_op:
                     p = int(self.creation_op.split("_")[1])
-
                     self.creators[0].backward(self.grad.pow(p))
 
                 # matrix multiplication
@@ -109,6 +108,14 @@ class Tensor(object):
                 if self.creation_op == "cross_entropy":
                     dx = self.softmax_out - self.target_dist
                     self.creators[0].backward(Tensor(dx))
+
+                if self.creation_op == "sigmoid":
+                    ones = Tensor(np.ones_like(self.grad.data))
+                    self.creators[0].backward(self.grad * (self * (ones - self)))
+
+                if self.creation_op == "tanh":
+                    ones = Tensor(np.ones_like(self.grad.data))
+                    self.creators[0].backward(self.grad * (ones - (self * self)))
 
     def __repr__(self):
         return str(self.data.__repr__())
@@ -214,6 +221,29 @@ class Tensor(object):
             )
 
         return Tensor(new_data)
+
+    def sigmoid(self):
+
+        if self.requires_grad:
+            return Tensor(
+                1.0 / (1.0 + np.exp(-self.data)),
+                requires_grad=True,
+                creators=[self],
+                creation_op="sigmoid",
+            )
+
+        return Tensor(1.0 / (1.0 + np.exp(-self.data)))
+
+    def tanh(self):
+
+        if self.requires_grad:
+            return Tensor(
+                np.tanh(self.data),
+                requires_grad=True,
+                creators=[self],
+                creation_op="tanh",
+            )
+        return Tensor(np.tanh(self.data))
 
     def cross_entropy(self, tagret_idx):
 
