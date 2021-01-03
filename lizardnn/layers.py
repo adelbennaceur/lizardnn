@@ -18,12 +18,11 @@ class Linear(Layer):
     """
     Apply linear transformation to input data , y = x*A.T + b
     """
-
     def __init__(self, in_features, out_features, bias=False):
         super().__init__()
 
         # TODO: implement random init function (mean ,std)
-        # He initialization
+        #He initialization
 
         w = np.random.randn(in_features, out_features) * np.sqrt(
             2.0 / in_features + out_features
