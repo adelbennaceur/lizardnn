@@ -106,6 +106,10 @@ class Tensor(object):
                     dim = int(self.creation_op.split("_")[1])
                     self.creators[0].backward(self.grad.sum(dim))
 
+                if self.creation_op == "cross_entropy":
+                    dx = self.softmax_out - self.target_dist
+                    self.creators[0].backward(Tensor(dx))
+
     def __repr__(self):
         return str(self.data.__repr__())
 
@@ -210,3 +214,27 @@ class Tensor(object):
             )
 
         return Tensor(new_data)
+
+    def cross_entropy(self, tagret_idx):
+
+        softmax_out = np.exp(self.data) / np.sum(
+            np.exp(self.data), axis=len(self.data.shape) - 1, keepdims=True
+        )
+        t = tagret_idx.data.flatten()
+        p = softmax_out.reshape(len(t), -1)
+        target_dist = np.eye(p.shape[1])[t]
+        loss = -(np.log(p) * (target_dist)).sum(1).mean()
+
+        if self.requires_grad:
+            out = Tensor(
+                loss,
+                requires_grad=True,
+                creators=[self],
+                creation_op="cros_entropy",
+            )
+            out.softmax_output = softmax_out
+            out.target_dist = target_dist
+
+            return out
+
+        return Tensor(loss)

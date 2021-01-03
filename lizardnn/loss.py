@@ -1,8 +1,7 @@
 from tensor import Tensor
-import functions as F
 
 
-class MSEloss:
+class MSEloss(object):
     """
     Criterion that measures the mean squared error
     """
@@ -12,17 +11,16 @@ class MSEloss:
         raise NotImplementedError
 
     def forward(self, preds, target):
-        return F.MSEloss(preds, target)
+        return (preds - target).pow(2).sum(0)
 
 
-class CrossEntropyLoss:
+class CrossEntropyLosss(object):
     """
-    Cross entropy loss
+    cross entropy loss criterion
     """
 
     def __init__(self):
         super().__init__()
-        raise NotImplementedError
 
-    def forward(self, gts, target):
-        raise NotImplementedError
+    def forward(self, preds, target):
+        return preds.cross_entropy(target)
