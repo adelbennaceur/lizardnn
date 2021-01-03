@@ -15,7 +15,7 @@ class MSEloss():
 
 class CrossEntropyLoss():
     """
-    Criterion that measures the mean squared error
+    Cross entropy loss 
     """ 
     def __init__(self):
         super().__init__()
