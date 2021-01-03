@@ -82,6 +82,11 @@ class Tensor(object):
                 if self.creation_op == "transpose":
                     self.creators[0].backward(self.grad.transpose())
 
+                if "pow" in self.creation_op:
+                    p = int(self.creation_op.split("_")[1])
+
+                    self.creators[0].backward(self.grad.pow(p))
+
                 # matrix multiplication
                 if self.creation_op == "mm":
                     # previous layer activation
@@ -145,6 +150,17 @@ class Tensor(object):
             )
         return Tensor(self.data - other.data)
 
+    def pow(self, exp):
+        if self.requires_grad:
+            return Tensor(
+                np.power(self.data, exp),
+                requires_grad=True,
+                creators=[self],
+                creation_op="pow_" + str(exp),
+            )
+
+        return Tensor(np.power(self.data, exp))
+
     def mm(self, other):
         if self.requires_grad:
             return Tensor(
@@ -194,5 +210,3 @@ class Tensor(object):
             )
 
         return Tensor(new_data)
-
-    # matrix multiplication
