@@ -8,10 +8,13 @@ class MSEloss(object):
 
     def __init__(self):
         super().__init__()
-        raise NotImplementedError
-
+        
     def forward(self, preds, target):
         return (preds - target).pow(2).sum(0)
+
+    def __call__(self, *args):
+            return self.forward(*args)
+            
 
 
 class CrossEntropyLoss(object):
@@ -25,5 +28,7 @@ class CrossEntropyLoss(object):
     def forward(self, preds, target):
         return preds.cross_entropy(target)
 
-
+    def __call__(self, *args):
+        return self.forward(*args)
+        
 

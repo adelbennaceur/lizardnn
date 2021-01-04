@@ -106,6 +106,7 @@ class Tensor(object):
                     self.creators[0].backward(self.grad.sum(dim))
 
                 if self.creation_op == "cross_entropy":
+
                     dx = self.softmax_out - self.target_dist
                     self.creators[0].backward(Tensor(dx))
 
@@ -262,9 +263,12 @@ class Tensor(object):
                 creators=[self],
                 creation_op="cros_entropy",
             )
-            out.softmax_output = softmax_out
+            out.softmax_out = softmax_out
             out.target_dist = target_dist
 
             return out
 
         return Tensor(loss)
+
+    def mse_loss(self):
+        

@@ -2,16 +2,30 @@ from lizardnn.tensor import Tensor
 import numpy as np
 
 
+
+#TODO : implement different  weight initialization techniques
+
+
+def init_weights(out_features, in_features, weight_init):
+    pass
+
+
 class Layer:
     """
     base class for different neural network layers
     """
-
+    
     def __init__(self):
         self.params = list()
 
     def get_parameters(self):
         return self.params
+
+    def forward(self, *args):
+        raise NotImplementedError
+
+    def __call__(self, *args):
+        return self.forward(*args)
 
 
 class Linear(Layer):
@@ -41,7 +55,14 @@ class Linear(Layer):
 class Sequential(Layer):
     def __init__(self, layers=list()):
         super().__init__()
+
         self.layers = layers
+
+    def __iter__(self):
+        yield from self.layers
+
+    def __getitem__(self, idx):
+        return self.layers[idx]
 
     def add(self, layer):
         self.layers.append(layer)
@@ -57,29 +78,6 @@ class Sequential(Layer):
         for layer in self.layers:
             x = layer.forward(x)
         return x
-
-
-class Conv2d(Layer):
-    """
-    2d convolution over an input signal containing diffeent input planes
-    """
-
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        strdie,
-        padding,
-        dilation,
-        bias=True,
-    ):
-        super().__init__()
-        raise NotImplementedError
-
-    def forward(self, x):
-        raise NotImplementedError
-
 
 #-----------activations----------
 class Tanh(Layer):
