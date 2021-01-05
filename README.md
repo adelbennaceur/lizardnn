@@ -16,7 +16,7 @@ The library has a built-in automatic differentiation engine that implements back
 
 ### basic tensor operations example
 
-```
+```python
 
 from lizardnn.tensor import Tensor
 
@@ -37,7 +37,7 @@ print(a.grad.data)
 
 
 ### MLP example 
-```
+```python
 
 from lizardnn.tensor import Tensor
 from lizardnn.layers import Linear, Linear, Sequential
