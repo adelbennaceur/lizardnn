@@ -10,20 +10,23 @@ from lizardnn.layers import Layer, Linear, Sigmoid, Tanh, Sequential
 from lizardnn.optim import SGD
 from lizardnn.loss import MSEloss
 
+
 class LizardNet(Layer):
     def __init__(self):
         super().__init__()
 
-        self.fc1 = Linear(2, 3)
-        self.act1 = Tanh()
-        self.fc2 = Linear(3, 1)
-        self.act2 = Sigmoid()
+        # self.fc1 = Linear(2, 3)
+        # self.act1 = Tanh()
+        # self.fc2 = Linear(3, 1)
+        # self.act2 = Sigmoid()
+        self.layer = Sequential([Linear(2, 3), Linear(3, 1)])
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = self.act1(x)
-        x = self.fc2(x)
-        x = self.act2(x)
+        x = self.layer(x)
+        # x = self.fc1(x)
+        # x = self.act1(x)
+        # x = self.fc2(x)
+        # x = self.act2(x)
         return x
 
 
@@ -36,7 +39,7 @@ def main():
 
     criterion = MSEloss()
 
-    optim = SGD(parameters=model.get_parameters(), lr=1)
+    optim = SGD(parameters=model.get_parameters(), lr=0.01)
 
     for i in range(10):
 
@@ -46,8 +49,7 @@ def main():
 
         loss.backward()
         optim.step()
-
-    print(model.get_parameters())
+        print(loss)
 
 
 if __name__ == "__main__":
