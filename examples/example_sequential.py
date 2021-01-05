@@ -34,4 +34,18 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    from lizardnn.tensor import Tensor
+
+    a = Tensor([1,2,3,4,5], requires_grad=True)
+    b = Tensor([2,2,2,2,2], requires_grad=True)
+    c = Tensor([5,4,3,2,1], requires_grad=True)
+
+    d = a + b
+    e = d.sigmoid()
+    f = d * e
+
+    f.backward()
+
+    print(b.grad.data)
+    print(a.grad.data)

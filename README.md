@@ -46,21 +46,21 @@ from lizardnn.loss import MSEloss
 
 
 data = Tensor([[0,0],[0,1],[1,0],[1,1]], requires_grad=True)
-    target = Tensor([[0],[1],[0],[1]], requires_grad=True)
+target = Tensor([[0],[1],[0],[1]], requires_grad=True)
 
-    model = Sequential([Linear(2,3), Linear(3,1)])
+model = Sequential([Linear(2,3), Linear(3,1)])
 
-    criterion = MSEloss()
-    
-  
-    optim = SGD(parameters=model.get_parameters(), lr=0.01)
+criterion = MSEloss()
 
-    for i in range(10):
 
-        pred = model(data)
-    
-        loss = criterion(pred, target)
+optim = SGD(parameters=model.get_parameters(), lr=0.01)
 
-        loss.backward()
-        optim.step()
-        print(loss)
+for i in range(10):
+
+    pred = model(data)
+
+    loss = criterion(pred, target)
+
+    loss.backward()
+    optim.step()
+    print(loss)
