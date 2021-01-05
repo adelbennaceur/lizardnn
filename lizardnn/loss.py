@@ -8,13 +8,12 @@ class MSEloss(object):
 
     def __init__(self):
         super().__init__()
-        
+
     def forward(self, preds, target):
-        return (preds - target).pow(2).sum(0)
+        return ((preds - target) * (preds - target)).sum(0)
 
     def __call__(self, *args):
-            return self.forward(*args)
-            
+        return self.forward(*args)
 
 
 class CrossEntropyLoss(object):
@@ -30,5 +29,3 @@ class CrossEntropyLoss(object):
 
     def __call__(self, *args):
         return self.forward(*args)
-        
-

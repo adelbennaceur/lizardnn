@@ -1,7 +1,5 @@
 __pycache__
-note.md
-tmp.py
-examples
 and.py
-layers_example.py
-cross_entropy.py
+../examples/example_mlp.py
+../examples/and.py
+

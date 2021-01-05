@@ -246,6 +246,9 @@ class Tensor(object):
             )
         return Tensor(np.tanh(self.data))
 
+    def relu(self):
+        raise NotImplementedError
+
     def cross_entropy(self, tagret_idx):
 
         softmax_out = np.exp(self.data) / np.sum(
@@ -261,7 +264,7 @@ class Tensor(object):
                 loss,
                 requires_grad=True,
                 creators=[self],
-                creation_op="cros_entropy",
+                creation_op="cross_entropy",
             )
             out.softmax_out = softmax_out
             out.target_dist = target_dist
@@ -269,6 +272,3 @@ class Tensor(object):
             return out
 
         return Tensor(loss)
-
-    def mse_loss(self):
-        

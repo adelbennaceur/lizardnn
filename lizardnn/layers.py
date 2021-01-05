@@ -2,8 +2,7 @@ from lizardnn.tensor import Tensor
 import numpy as np
 
 
-
-#TODO : implement different  weight initialization techniques
+# TODO : implement different  weight initialization techniques
 
 
 def init_weights(out_features, in_features, weight_init):
@@ -14,7 +13,7 @@ class Layer:
     """
     base class for different neural network layers
     """
-    
+
     def __init__(self):
         self.params = list()
 
@@ -79,11 +78,13 @@ class Sequential(Layer):
             x = layer.forward(x)
         return x
 
-#-----------activations----------
+
+# -----------activations----------
 class Tanh(Layer):
     """
     Tanh activation layer
     """
+
     def __init__(self):
         super().__init__()
 
@@ -95,9 +96,9 @@ class Sigmoid(Layer):
     """
     Tanh activation layer
     """
+
     def __init__(self):
         super().__init__()
 
     def forward(self, x):
         return x.sigmoid()
-
