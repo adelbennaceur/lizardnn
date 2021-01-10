@@ -1,5 +1,5 @@
 # lizardnn
-lizardnn is a minimal deep learning library written in python and built on top of NumPy, the library for learning purposes only.
+lizardnn is a minimal deep learning library written in python and built on top of NumPy, the library is for learning purposes only.
 
 The library has a built-in automatic differentiation engine that implements backpropagation and dynamically builds a computational graph, the library is also built with basic features to train a simple neural network such as basic operations, optimizers, loss functions, and layers.
 
