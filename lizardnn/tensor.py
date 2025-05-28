@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, List, Optional, Union, Any
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np  # type: ignore
 from numpy import ndarray
@@ -302,16 +302,25 @@ class Tensor:
             )
         return Tensor(self.data.dot(other.data))
 
-    def sum(self, dim: int) -> "Tensor":
-        """Sum tensor along dimension."""
+    def sum(self, dim: Optional[int] = None) -> "Tensor":
+        """
+        Sum along a dimension (like .sum(axis)) or over *all* elements when dim=None.
+        """
+        if dim is None:
+            data_sum = self.data.sum()
+            op = "sum_all"
+        else:
+            data_sum = self.data.sum(dim)
+            op = f"sum_{dim}"
+
         if self.requires_grad:
             return Tensor(
-                self.data.sum(dim),
+                data_sum,
                 requires_grad=True,
                 creators=[self],
-                creation_op=f"sum_{dim}",
+                creation_op=op,
             )
-        return Tensor(self.data.sum(dim))
+        return Tensor(data_sum)
 
     def mean(self, dim: Optional[int] = None) -> "Tensor":
         """

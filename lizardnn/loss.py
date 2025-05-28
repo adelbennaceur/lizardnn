@@ -14,9 +14,9 @@ class Loss:
         assert reduction in ["none", "mean", "sum"]
         self.reduction = reduction
 
-    def __call__(self, *args, **kwargs) -> Tensor:
+    def __call__(self, *args: Tensor, **kwargs: Tensor) -> Tensor:
         """Forward pass of the loss function."""
-        return self.forward(*args, **kwargs)
+        return self.forward(*args, **kwargs)  # type: ignore
 
 
 class MSELoss(Loss):
@@ -40,7 +40,7 @@ class MSELoss(Loss):
         diff = preds - target
         mse = (diff * diff).mean()
         if self.reduction == "sum":
-            return mse * diff.data.size
+            return mse * diff.data.size  # type: ignore
         elif self.reduction == "none":
             return diff * diff
         return mse
