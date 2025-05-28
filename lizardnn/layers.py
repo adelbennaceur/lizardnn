@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Any, Iterator, Union
+from typing import Any, Iterator, List, Optional, Union
 
 import numpy as np  # type: ignore
 
