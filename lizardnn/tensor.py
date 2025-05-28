@@ -1,6 +1,10 @@
-from typing import List, Optional, Union, Tuple, Dict
-import numpy as np
+import itertools
+from typing import Dict, List, Optional, Union, Any
+
+import numpy as np  # type: ignore
 from numpy import ndarray
+
+_id_gen = itertools.count()  # deterministic IDs
 
 
 class Tensor:
@@ -13,7 +17,7 @@ class Tensor:
 
     def __init__(
         self,
-        data: Union[float, int, list, ndarray],
+        data: Union[float, int, List[Any], ndarray],
         requires_grad: bool = False,
         creators: Optional[List["Tensor"]] = None,
         creation_op: Optional[str] = None,
@@ -28,23 +32,23 @@ class Tensor:
             creation_op: The operation that created this tensor
             id: Unique identifier for the tensor
         """
-        self.data = np.array(data, dtype=np.float32)
+        arr = np.asarray(data)
+        if np.issubdtype(arr.dtype, np.floating):
+            arr = arr.astype(np.float32)  # keep floats as float32
+        self.data = arr
+
         self.creation_op = creation_op
         self.creators = creators
         self.grad: Optional[Tensor] = None
         self.requires_grad = requires_grad
         self.children: Dict[int, int] = {}
+        self.meta: Dict[str, Any] = {}
 
-        if id is None:
-            id = np.random.randint(0, 10000)
-        self.id = id
+        self.id = next(_id_gen) if id is None else id
 
         if creators is not None:
             for c in creators:
-                if self.id not in c.children:
-                    c.children[self.id] = 1
-                else:
-                    c.children[self.id] += 1
+                c.children[self.id] = c.children.get(self.id, 0) + 1
 
     def children_grads(self) -> bool:
         """Check if all children have propagated their gradients."""
@@ -74,10 +78,11 @@ class Tensor:
             self.children[grad_origin.id] -= 1
 
         # Accumulate gradients
-        if self.grad is None:
-            self.grad = grad
+        if self.grad is None or self.grad.data is None:
+            # first contribution, or buffer was never initialised
+            self.grad = Tensor(np.array(grad.data, copy=True), requires_grad=False)
         else:
-            self.grad += grad
+            self.grad.data += grad.data
 
         assert not grad.requires_grad, "Gradients should not require gradients"
 
@@ -89,7 +94,12 @@ class Tensor:
 
             elif self.creation_op == "neg":
                 self.creators[0].backward(self.grad.__neg__(), self)
-
+            elif self.creation_op == "log":
+                # d/dx log(x) = 1/x
+                self.creators[0].backward(
+                    Tensor(self.grad.data / self.creators[0].data, requires_grad=False),
+                    self,
+                )
             elif self.creation_op == "mul":
                 g0 = Tensor(self.grad.data * self.creators[1].data)
                 self.creators[0].backward(g0, self)
@@ -105,7 +115,7 @@ class Tensor:
             elif self.creation_op == "transpose":
                 self.creators[0].backward(self.grad.transpose(), self)
 
-            elif "pow" in self.creation_op:
+            elif self.creation_op and "pow" in self.creation_op:
                 p = float(self.creation_op.split("_")[1])
                 self.creators[0].backward(
                     Tensor((p * self.creators[0].data ** (p - 1)) * self.grad.data),
@@ -113,21 +123,32 @@ class Tensor:
                 )
 
             elif self.creation_op == "mm":
-                act = self.creators[0]
-                weights = self.creators[1]
-                new = self.grad.mm(weights.transpose())
-                act.backward(new, self)
-                new = self.grad.transpose().mm(act).transpose()
-                weights.backward(new, self)
+                act, weights = self.creators
 
-            elif "sum" in self.creation_op:
+                # dL/dAct = dL/dOut · W.T    (detached)
+                act_grad = Tensor(
+                    self.grad.data.dot(weights.data.T), requires_grad=False
+                )
+                act.backward(act_grad, self)
+
+                # dL/dW = (Act.T · dL/dOut)   (detached, keep original shape)
+                w_grad = Tensor(act.data.T.dot(self.grad.data), requires_grad=False)
+                weights.backward(w_grad, self)
+
+            elif self.creation_op and "sum" in self.creation_op:
                 dim = int(self.creation_op.split("_")[1])
                 ds = self.creators[0].data.shape[dim]
-                self.creators[0].backward(self.grad.expand(dim, ds))
+                self.creators[0].backward(self.grad.expand(dim, ds), self)
 
-            elif "expand" in self.creation_op:
+            elif self.creation_op == "abs":
+                sign = np.sign(self.creators[0].data)
+                self.creators[0].backward(Tensor(self.grad.data * sign), self)
+
+            elif self.creation_op and "expand" in self.creation_op:
                 dim = int(self.creation_op.split("_")[1])
-                self.creators[0].backward(self.grad.sum(dim))
+                # detach before sending upstream
+                upstream = Tensor(self.grad.sum(dim).data, requires_grad=False)
+                self.creators[0].backward(upstream, self)
 
             elif self.creation_op == "sigmoid":
                 self.creators[0].backward(
@@ -146,15 +167,25 @@ class Tensor:
 
             elif self.creation_op == "leaky_relu":
                 mask = self.data > 0
-                grad_data = np.where(mask, 1.0, self.negative_slope)
+                grad_data = np.where(mask, 1.0, self.meta["negative_slope"])
                 self.creators[0].backward(
                     Tensor(self.grad.data * grad_data, requires_grad=False), self
                 )
 
             elif self.creation_op == "cross_entropy":
-                n = self.target_dist.shape[0]
-                dx = (self.softmax_out - self.target_dist) / n
+                n = self.meta["target_dist"].shape[0]
+                dx = (self.meta["softmax_out"] - self.meta["target_dist"]) / n
                 self.creators[0].backward(Tensor(dx), self)
+
+            elif self.creation_op == "mean_all":
+                coeff = 1.0 / self.meta["_denom"]
+                full_grad = (
+                    np.ones_like(self.creators[0].data, dtype=np.float32) * coeff
+                )
+                self.creators[0].backward(
+                    Tensor(full_grad, requires_grad=False),
+                    self,
+                )
 
     def __repr__(self) -> str:
         return f"Tensor(data={self.data}, grad={self.grad})"
@@ -181,6 +212,25 @@ class Tensor:
                 creation_op="neg",
             )
         return Tensor(-self.data)
+
+    def log(self) -> "Tensor":
+        """Element-wise natural logarithm."""
+        if self.requires_grad:
+            return Tensor(
+                np.log(self.data + 1e-7),
+                requires_grad=True,
+                creators=[self],
+                creation_op="log",
+            )
+        return Tensor(np.log(self.data + 1e-7))
+
+    def __abs__(self) -> "Tensor":
+        return Tensor(
+            np.abs(self.data),
+            requires_grad=self.requires_grad,
+            creators=[self] if self.requires_grad else None,
+            creation_op="abs",
+        )
 
     def __mul__(self, other: Union["Tensor", float, int]) -> "Tensor":
         """Multiply two tensors element-wise."""
@@ -222,6 +272,20 @@ class Tensor:
             )
         return Tensor(self.data**exp)
 
+    def __radd__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        return self.__add__(other)
+
+    def __rsub__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        other = other if isinstance(other, Tensor) else Tensor(other)
+        return other.__sub__(self)
+
+    def __rmul__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        return self.__mul__(other)
+
+    def __rtruediv__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        other = other if isinstance(other, Tensor) else Tensor(other)
+        return other.__truediv__(self)
+
     def mm(self, other: "Tensor") -> "Tensor":
         """Matrix multiplication."""
         if self.requires_grad or other.requires_grad:
@@ -245,10 +309,25 @@ class Tensor:
         return Tensor(self.data.sum(dim))
 
     def mean(self, dim: Optional[int] = None) -> "Tensor":
-        """Mean of tensor along dimension."""
+        """
+        Global mean (dim=None) or mean along a dimension.
+        Keeps the graph intact for back-prop.
+        """
         if dim is None:
-            return Tensor(self.data.mean())
-        return self.sum(dim) / self.data.shape[dim]
+            # mean over *all* elements
+
+            total_elems = self.data.size
+            out = Tensor(
+                np.array(self.data.mean()),
+                requires_grad=True,
+                creators=[self],
+                creation_op="mean_all",
+            )
+            out.meta["_denom"] = total_elems
+            return out
+        else:
+            # mean over a single axis: sum(dim) / size
+            return self.sum(dim) / self.data.shape[dim]  # type: ignore
 
     def transpose(self) -> "Tensor":
         """Transpose tensor."""
@@ -319,7 +398,7 @@ class Tensor:
                 creators=[self],
                 creation_op="leaky_relu",
             )
-            out.negative_slope = negative_slope
+            out.meta["negative_slope"] = negative_slope
             return out
         return Tensor(np.where(self.data > 0, self.data, self.data * negative_slope))
 
@@ -339,7 +418,7 @@ class Tensor:
         # Compute cross entropy
         t = target_idx.data.flatten()
         p = softmax_out.reshape(len(t), -1)
-        target_dist = np.eye(p.shape[1])[t]
+        target_dist = np.eye(p.shape[1])[t.astype(np.int64)]
         loss = -(np.log(p + 1e-7) * target_dist).sum(1).mean()
 
         if self.requires_grad:
@@ -349,8 +428,8 @@ class Tensor:
                 creators=[self],
                 creation_op="cross_entropy",
             )
-            out.softmax_out = softmax_out
-            out.target_dist = target_dist
+            out.meta["softmax_out"] = softmax_out
+            out.meta["target_dist"] = target_dist
             return out
 
         return Tensor(loss)
