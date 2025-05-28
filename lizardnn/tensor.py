@@ -225,6 +225,7 @@ class Tensor:
         return Tensor(np.log(self.data + 1e-7))
 
     def __abs__(self) -> "Tensor":
+        """Element-wise absolute value."""
         return Tensor(
             np.abs(self.data),
             requires_grad=self.requires_grad,
@@ -273,16 +274,20 @@ class Tensor:
         return Tensor(self.data**exp)
 
     def __radd__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        """Add two tensors (right addition)."""
         return self.__add__(other)
 
     def __rsub__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        """Subtract two tensors (right subtraction)."""
         other = other if isinstance(other, Tensor) else Tensor(other)
         return other.__sub__(self)
 
     def __rmul__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        """Multiply two tensors (right multiplication)."""
         return self.__mul__(other)
 
     def __rtruediv__(self, other: Union["Tensor", float, int]) -> "Tensor":
+        """Divide two tensors (right division)."""
         other = other if isinstance(other, Tensor) else Tensor(other)
         return other.__truediv__(self)
 
@@ -411,11 +416,11 @@ class Tensor:
         Returns:
             Loss tensor
         """
-        # Compute softmax
+        # softmax
         exp_data = np.exp(self.data - np.max(self.data, axis=-1, keepdims=True))
         softmax_out = exp_data / exp_data.sum(axis=-1, keepdims=True)
 
-        # Compute cross entropy
+        # cross entropy
         t = target_idx.data.flatten()
         p = softmax_out.reshape(len(t), -1)
         target_dist = np.eye(p.shape[1])[t.astype(np.int64)]
